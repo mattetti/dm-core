@@ -70,7 +70,7 @@ module DataMapper
             model.belongs_to(Extlib::Inflection.underscore(n).gsub("/", "_").to_sym, :class_name => n)
           end
 
-          Object.const_set(model_name, model)
+          Object.full_const_set(model_name, model)
         end
 
         relationship

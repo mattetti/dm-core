@@ -39,14 +39,14 @@ module ModelLoader
   def self.included(base)
     base.extend(ClassMethods)
     base.class_eval { include InstanceMethods }
-    # base.before(:each) { load_models(:global) }
-    base.after(:each)  { unload_models }
+    # base.before(:all) { load_models(:global) }
+    base.after(:all) { unload_models }
   end
 
   module ClassMethods
 
     def load_models_for_metaphor(*metaphors)
-      before(:each) { load_models_for_metaphor(*metaphors) }
+      before(:all) { load_models_for_metaphor(*metaphors) }
     end
 
   end
@@ -81,16 +81,13 @@ module ModelLoader
 
     def remove_model(klass)
       DataMapper::Resource.descendants.delete(klass)
-      # Check to see if the model is living inside a module
-      klass_name = klass.to_s
-      if klass_name.index("::")
-        mod = klass_name.match(/(\S+)::/)[1]
-        child_class = klass_name.match(/\S+::(\S+)/)[1]
 
-        Object.const_get(mod).module_eval { remove_const child_class }
-      else
-        Object.module_eval { remove_const klass.to_s }
-      end
+      list = klass.to_s.split('::')
+      list.shift if list.first.blank?
+      last = list.pop
+      obj  = obj = list.empty? ? Object : Object.full_const_get(list.join('::'))
+
+      obj.module_eval { remove_const last }
     end
   end
 end

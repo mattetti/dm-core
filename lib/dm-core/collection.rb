@@ -103,6 +103,7 @@ module DataMapper
     #
     # @api public
     def all(query = {})
+      # TODO: return a warning if this is called with an empty Hash
       # TODO: this shouldn't be a kicker if scoped_query() is called
       return self if query.kind_of?(Hash) ? query.empty? : query == self.query
       query = scoped_query(query)

@@ -1,5 +1,27 @@
 require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'spec_helper'))
-require 'pp'
+require File.expand_path(File.join(File.dirname(__FILE__), '..', 'collection_shared'))
+
+if ADAPTER
+  describe DataMapper::Associations::OneToMany::Proxy do
+    it_should_behave_like 'A Collection'
+
+    before do
+      site = Blog::Site.first
+      user = Blog::User.first
+
+      @repository = repository(ADAPTER)
+      @model      = Blog::Article
+
+      @articles    = site.articles
+      @article     = @articles.first
+      @new_article = @model.new(:title => 'Another Article', :content => 'Sample', :author => user)
+      @other       = site.articles
+    end
+  end
+end
+
+# OLD SPECS
+
 describe "OneToMany" do
   before(:all) do
     class Team

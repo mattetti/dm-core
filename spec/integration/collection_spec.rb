@@ -1,4 +1,25 @@
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'collection_shared'))
+
+#if ADAPTER
+#  describe DataMapper::Collection do
+#    it_should_behave_like 'A Collection'
+#
+#    before do
+#      user = Blog::User.first
+#
+#      @repository = repository(ADAPTER)
+#      @model      = Blog::Article
+#
+#      @articles    = @model.all
+#      @article     = @articles.first
+#      @new_article = @model.new(:title => 'Another Article', :content => 'Sample', :author => user)
+#      @other       = @model.all
+#    end
+#  end
+#end
+
+# OLD SPECS
 
 if ADAPTER
   class Zebra
@@ -75,7 +96,7 @@ if ADAPTER
     end
   end
 
-  describe DataMapper::Collection do
+  describe DataMapper::Collection, 'original specs' do
     include CollectionSpecHelper
 
     before do

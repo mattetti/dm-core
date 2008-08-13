@@ -85,10 +85,9 @@ module DataMapper
           query_values.reject! { |k| child_identity_map[k] }
 
           bind_values = query_values unless query_values.empty?
-          query = child_key.zip(bind_values.transpose).to_hash
+          keys        = child_key.map { |k| [ k, bind_values ] }.to_hash
 
-          collection = child_model.send(finder, *(args.dup << @query.merge(options).merge(query)))
-
+          collection = child_model.send(finder, *(args.dup << @query.merge(options).merge(keys)))
           return collection unless collection.kind_of?(Collection) && collection.any?
 
           grouped_collection = {}

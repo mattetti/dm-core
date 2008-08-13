@@ -76,7 +76,7 @@ module DataMapper
 
         # FIXME: remove when RelationshipChain#get_children can return a Collection
         def all(query = {})
-          query.empty? ? self : @relationship.get_children(@parent, query)
+          query.respond_to?(:empty?) && query.empty? ? self : @relationship.get_children(@parent, query)
         end
 
         # FIXME: remove when RelationshipChain#get_children can return a Collection
@@ -170,7 +170,7 @@ module DataMapper
           raise UnsavedParentError, 'You cannot create until the parent is saved' if @parent.new_record?
           attributes = default_attributes.merge(attributes)
           resource = children.respond_to?(:create) ? super(attributes) : @relationship.child_model.create(attributes)
-          self << resource
+          self << resource unless resource.new_record?
           resource
         end
 
@@ -180,7 +180,7 @@ module DataMapper
           super
         end
 
-        def update!(attributes = {})
+        def update!(attributes = {}, reload = false)
           assert_mutable
           raise UnsavedParentError, 'You cannot mass-update without validations until the parent is saved' if @parent.new_record?
           super
