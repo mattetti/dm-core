@@ -1,26 +1,6 @@
 module Blog
   def self.auto_migrate!
-    models.each { |m| m.auto_migrate! }
-  end
-
-  def self.create_resources
-    site      = Site.create(:name => 'DataMapper Sample Blog')
-    user      = User.create(:username => 'dkubb', :password => '12345', :name => 'Dan Kubb', :email => 'dkubb@example.com')
-    commenter = Commenter.create(:name => user.name, :email => user.email)
-
-    draft   = site.drafts.create(:title => 'Sample Draft',     :content => 'Sample', :author => user)
-    article = site.articles.create(:title => 'Sample Article', :content => 'Sample', :author => user, :published_at => Time.now)
-    comment = article.comments.create(:content => 'Sample comment content', :commenter => commenter, :approved_at => Time.now, :approved_by => user)
-  end
-
-  def self.destroy_resources
-    models.each { |m| m.all.destroy! }
-  end
-
-  private
-
-  def self.models
-    [ User, Site, Article, Draft, Commenter, Comment ]
+    [ User, Site, Article, Draft, Commenter, Comment ].each { |m| m.auto_migrate! }
   end
 
   module Resource

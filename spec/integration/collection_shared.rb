@@ -5,16 +5,17 @@ require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
 describe 'A Collection', :shared => true do
   load_models_for_metaphor :blog
 
-  before :all do
-    Blog.auto_migrate!
-  end
-
   before do
-    Blog.create_resources
-  end
+    Blog.auto_migrate!
 
-  after do
-    Blog.destroy_resources
+    @repository = repository(ADAPTER)
+    @model      = Blog::Article
+
+    @site        = Blog::Site.create(:name => 'DataMapper Sample Blog')
+    @user        = Blog::User.create(:username => 'dkubb', :password => '12345', :name => 'Dan Kubb', :email => 'dkubb@example.com')
+    @article     = @site.articles.create(:title => 'Sample Article', :content => 'Sample', :author => @user, :published_at => Time.now)
+    @other       = @site.articles.create(:title => 'Other Article', :content => 'Other', :author => @user)
+    @new_article = @model.new(:title => 'New Article', :content => 'Sample', :author => @user)
   end
 
   describe '#<<' do
@@ -175,11 +176,11 @@ describe 'A Collection', :shared => true do
 
   describe '#concat' do
     it 'should concatenate the two collections' do
-      @articles.concat(@other).should == [ @article, @article ]
+      @articles.concat(@other_articles).should == [ @article, @other ]
     end
 
     it 'should return self' do
-      @articles.concat(@other).object_id.should == @articles.object_id
+      @articles.concat(@other_articles).object_id.should == @articles.object_id
     end
   end
 
@@ -224,13 +225,9 @@ describe 'A Collection', :shared => true do
     end
 
     it 'should orphan the resource from the collection' do
-      # resource is related
-      @article.collection.object_id.should == @articles.object_id
-
-      @articles.delete(@article)
-
-      # resource is orphaned
-      @article.collection.object_id.should_not == @articles.object_id
+      articles = @article.collection
+      articles.delete(@article)
+      @article.collection.object_id.should_not == articles.object_id
     end
 
     it 'should return a Resource' do
@@ -249,13 +246,9 @@ describe 'A Collection', :shared => true do
     end
 
     it 'should orphan the resource from the collection' do
-      # resource is related
-      @article.collection.object_id.should == @articles.object_id
-
-      @articles.delete_at(0)
-
-      # resource is orphaned
-      @article.collection.object_id.should_not == @articles.object_id
+      articles = @article.collection
+      articles.delete_at(0)
+      @article.collection.object_id.should_not == articles.object_id
     end
 
     it 'should return a Resource' do
@@ -290,89 +283,94 @@ describe 'A Collection', :shared => true do
     end
   end
 
-#  describe '#each' do
-#    it 'should return self' do
-#      @articles.each { |resource| }.object_id.should == @articles.object_id
-#    end
-#  end
-#
-#  describe '#each_index' do
-#    it 'should return self' do
-#      @articles.each_index { |resource| }.object_id.should == @articles.object_id
-#    end
-#  end
-#
-#  describe '#eql?' do
-#    it 'should return true if for the same collection' do
-#      @articles.object_id.should == @articles.object_id
-#      @articles.should be_eql(@articles)
-#    end
-#
-#    it 'should return true for duplicate collections' do
-#      dup = @articles.dup
-#      dup.should be_kind_of(DataMapper::Collection)
-#      dup.object_id.should_not == @articles.object_id
-#      dup.entries.should == @articles.entries
-#      dup.should be_eql(@articles)
-#    end
-#
-#    it 'should return false for different collections' do
-#      @articles.should_not be_eql(@other)
-#    end
-#  end
-#
-#  describe '#fetch' do
-#    it 'should return a Resource' do
-#      @articles.fetch(0).should be_kind_of(DataMapper::Resource)
-#    end
-#  end
-#
-#  describe '#first' do
-#    describe 'with no arguments' do
-#      it 'should return a Resource' do
-#        first = @articles.first
-#        first.should_not be_nil
-#        first.should be_kind_of(DataMapper::Resource)
-#        first.id.should == @new_article.id
-#      end
-#    end
-#
-#    describe 'with limit specified' do
-#      it 'should return a Collection' do
-#        collection = @articles.first(2)
-#
-#        collection.should be_kind_of(DataMapper::Collection)
-#        collection.object_id.should_not == @articles.object_id
-#
-#        collection.query.order.size.should == 1
-#        collection.query.order.first.property.should == @model.properties[:id]
-#        collection.query.order.first.direction.should == :asc
-#
-#        collection.query.offset.should == 0
-#        collection.query.limit.should == 2
-#
-#        collection.length.should == 2
-#
-#        collection.entries.map { |r| r.id }.should == [ @new_article.id, @bessie.id ]
-#      end
-#
-#      it 'should return a Collection if limit is 1' do
-#        collection = @articles.first(1)
-#
-#        collection.should be_kind_of(DataMapper::Collection)
-#        collection.object_id.should_not == @articles.object_id
-#      end
-#    end
-#  end
-#
-#  describe '#freeze' do
-#    it 'should freeze the underlying array' do
-#      @articles.should_not be_frozen
-#      @articles.freeze
-#      @articles.should be_frozen
-#    end
-#  end
-#
+  describe '#each' do
+    it 'should yield to each resource in the collection' do
+      articles = []
+      @articles.each { |article| articles << article }
+      articles.should == @articles
+    end
+
+    it 'should return self' do
+      @articles.each { |article| }.object_id.should == @articles.object_id
+    end
+  end
+
+  describe '#each_index' do
+    it 'should yield to the index of each resource in the collection' do
+      indexes = []
+      @articles.each_index { |index| indexes << index }
+      indexes.should == [ 0 ]
+    end
+
+    it 'should return self' do
+      @articles.each_index { |index| }.object_id.should == @articles.object_id
+    end
+  end
+
+  describe '#eql?' do
+    it 'should return true if for the same collection' do
+      @articles.object_id.should == @articles.object_id
+      @articles.should be_eql(@articles)
+    end
+
+    it 'should return true for duplicate collections' do
+      dup = @articles.dup
+      dup.object_id.should_not == @articles.object_id
+      dup.should be_eql(@articles)
+    end
+
+    it 'should return false for different collections' do
+      @articles.should_not be_eql(@other_articles)
+    end
+  end
+
+  describe '#fetch' do
+    it 'should return the expected resource' do
+      @articles.fetch(0).should == @article
+    end
+
+    it 'should return a Resource' do
+      @articles.fetch(0).should be_kind_of(DataMapper::Resource)
+    end
+  end
+
+  describe '#first' do
+    describe 'with no arguments' do
+      it 'should return the first resource' do
+        @articles.first.id.should == @article.id
+      end
+
+      it 'should return a Resource' do
+        @articles.first.should be_kind_of(DataMapper::Resource)
+      end
+    end
+
+    describe 'with limit specified' do
+      it 'should return the first N resources' do
+        @articles.first(1).should == [ @article ]
+      end
+
+      it 'should order based on the model defaults' do
+        order = @articles.first(1).query.order
+        order.size.should == 1
+        order.first.property.should == @model.properties[:id]
+        order.first.direction.should == :asc
+      end
+
+      it 'should return a Collection' do
+        @articles.first(1).should be_kind_of(DataMapper::Collection)
+      end
+    end
+  end
+
+  describe '#freeze' do
+    it 'should freeze the collection' do
+      @articles.should_not be_frozen
+      @articles.freeze
+      @articles.should be_frozen
+    end
+  end
+
 #  describe '#get' do
 #    it 'should find a resource in a collection by key' do
 #      article = @articles.get(*@new_article.key)
@@ -545,13 +543,13 @@ describe 'A Collection', :shared => true do
 #
 #  describe '#reject' do
 #    it 'should return a Collection with resources that did not match the block' do
-#      rejected = @articles.reject { |resource| false }
+#      rejected = @articles.reject { |article| false }
 #      rejected.class.should == Array
 #      rejected.should == [ @new_article, @bessie, @steve ]
 #    end
 #
 #    it 'should return an empty Array if resources matched the block' do
-#      rejected = @articles.reject { |resource| true }
+#      rejected = @articles.reject { |article| true }
 #      rejected.class.should == Array
 #      rejected.should == []
 #    end
@@ -559,11 +557,11 @@ describe 'A Collection', :shared => true do
 #
 #  describe '#reject!' do
 #    it 'should return self if resources matched the block' do
-#      @articles.reject! { |resource| true }.object_id.should == @articles.object_id
+#      @articles.reject! { |article| true }.object_id.should == @articles.object_id
 #    end
 #
 #    it 'should return nil if no resources matched the block' do
-#      @articles.reject! { |resource| false }.should be_nil
+#      @articles.reject! { |article| false }.should be_nil
 #    end
 #  end
 #
@@ -631,7 +629,7 @@ describe 'A Collection', :shared => true do
 #      @articles.should_not == other
 #      @articles.replace(other)
 #      @articles.should == other
-#      @articles.object_id.should_not == @other.object_id
+#      @articles.object_id.should_not == @other_articles.object_id
 #    end
 #  end
 #
@@ -664,19 +662,19 @@ describe 'A Collection', :shared => true do
 #
 #  describe '#reverse_each' do
 #    it 'should return self' do
-#      @articles.reverse_each { |resource| }.object_id.should == @articles.object_id
+#      @articles.reverse_each { |article| }.object_id.should == @articles.object_id
 #    end
 #  end
 #
 #  describe '#select' do
 #    it 'should return an Array with resources that matched the block' do
-#      selected = @articles.select { |resource| true }
+#      selected = @articles.select { |article| true }
 #      selected.class.should == Array
 #      selected.should == @articles
 #    end
 #
 #    it 'should return an empty Array if no resources matched the block' do
-#      selected = @articles.select { |resource| false }
+#      selected = @articles.select { |article| false }
 #      selected.class.should == Array
 #      selected.should == []
 #    end
@@ -827,9 +825,7 @@ describe 'A Collection', :shared => true do
     it 'should update loaded resources if forced' do
       repository(ADAPTER) do |r|
         articles = @articles.reload
-        article  = articles.first
-
-        article.title.should == 'Sample Article'
+        article  = @model.first(:title => 'Sample Article')
 
         articles.update!({ :title => 'Updated Article' }, true)
 

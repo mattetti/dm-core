@@ -6,16 +6,8 @@ if ADAPTER
     it_should_behave_like 'A Collection'
 
     before do
-      site = Blog::Site.first
-      user = Blog::User.first
-
-      @repository = repository(ADAPTER)
-      @model      = Blog::Article
-
-      @articles    = site.articles
-      @article     = @articles.first
-      @new_article = @model.new(:title => 'Another Article', :content => 'Sample', :author => user)
-      @other       = site.articles
+      @articles       = @site.articles(:title.not => @other.title)
+      @other_articles = @site.articles(:title => @other.title)
     end
   end
 end
